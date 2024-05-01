@@ -4,9 +4,16 @@
 const express = require("express");
 
 const app = express();
+
 const ExpressError = require("./expressError")
 
+
 app.use(express.json());
+
+const companiesRoutes = require("./routes/companies")
+const invoiceRoutes = require('./routes/invoices')
+app.use("/companies", companiesRoutes)
+app.use("/invoices", invoiceRoutes)
 
 
 /** 404 handler */
@@ -27,5 +34,4 @@ app.use((err, req, res, next) => {
   });
 });
 
-
-module.exports = app;
+module.exports = app; 
