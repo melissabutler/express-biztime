@@ -3,6 +3,7 @@ const db = require("../db");
 const { route } = require("../app");
 const ExpressError = require("../expressError");
 const router = express.Router();
+const slugify = require("slugify")
 
 router.get('/', async function(req, res, next) {
     try {
@@ -19,15 +20,18 @@ router.get('/:code', async function(req, res, next) {
 
         const compResults = await db.query(`SELECT * FROM companies WHERE code = $1`, [code]);
 
-        const invoiceResults = await db.query(`SELECT id FROM invoices WHERE comp_code = $1 ORDER BY id`, [code]);
+        const invoiceResults = await db.query(`SELECT * FROM invoices WHERE comp_code = $1 ORDER BY id`, [code]);
 
         if(compResults.rows.length === 0) {
             throw new ExpressError(`Cannot locate company with code of '${code}'`, 404)
         }
         const company = compResults.rows[0];
-        const invoices = invoiceResults.rows;
+        if (invoiceResults.rows.length !== 0){
+            const invoices = invoiceResults.rows;
 
-        company.invoices = invoices.map(inv => inv.id)
+            company.invoices = invoices
+        }
+        
 
         return res.json({ "company": company})
     } catch(err) {
@@ -37,7 +41,8 @@ router.get('/:code', async function(req, res, next) {
 
 router.post('/', async function(req, res, next) {
     try {
-        const { code, name, description } = req.body;
+        const { name, description } = req.body;
+        let code = slugify(name, {lower: true})
         const results = await db.query(`INSERT INTO companies (code, name, description) VALUES ($1 , $2, $3) RETURNING code, name, description`, [code, name, description]);
         return res.status(201).json({ company: results.rows[0]})
     } catch(err){
@@ -67,7 +72,5 @@ router.delete('/:code', async function(req, res, next) {
         return next(err);
     }
 })
-//post companies, adds a company
-//put companies/code, edit an existing company
-//delete companies/code delete a company
+
 module.exports = router;
